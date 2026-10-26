@@ -1,0 +1,2 @@
+f81ad8c0d4d0e4991803e84465dd0caff3424f08be3af986197856847c7482ed  FreeTube-TV-prototype-armv7.apk
+de41d00e965d019c0a02804917d86dd307f2b3a8fe36c28801cc1a548423ab66  source-changes.patch

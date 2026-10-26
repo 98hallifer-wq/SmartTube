@@ -1,0 +1,12 @@
+Build verification: FreeTube TV prototype
+
+Android APK compilation: passed.
+Application tests: 11 passed, 0 failed, 0 skipped (Robolectric 4.11.1 on JDK 17).
+Android lint: passed, 0 errors, 272 warnings. Full report included.
+APK signature: verified using APK Signature Scheme v2.
+Package/search/startup/update provider identities: isolated under app.freetube.tv.prototype.
+Target SDK: 34; minimum SDK: 26; supplied artifact: armeabi-v7a.
+Physical TV execution: NOT RUN. Streaming, sign-in/history, D-pad behavior and SponsorBlock not yet verified on hardware.
+
+Test-only dependencies were updated for JDK 17 and Android 14 compatibility.
+The prototype uses a separate debug signing key retained in the build environment.

@@ -1,0 +1,28 @@
+FreeTube TV prototype — install alongside existing apps
+
+APK: FreeTube-TV-prototype-armv7.apk
+Package: app.freetube.tv.prototype
+Version: 32.68-freetube.1
+Minimum Android: 8 (API 26); target: Android 14 (API 34)
+Architecture: armeabi-v7a (the projector's confirmed 32-bit Android ABI)
+
+Download the APK to the Windows laptop that can reach the projector.
+Give local Codex the downloaded APK path and this instruction:
+
+Reconnect to my projector using its current authorized ADB connection. Verify the
+APK SHA-256 against SHA256SUMS.txt and install this separate FreeTube prototype.
+Keep existing apps and device settings intact. Launch it and capture startup logs.
+Help test Home browsing, D-pad navigation, search, video and sound, and SponsorBlock.
+If I choose to sign in, use the in-app device-code flow; don't collect my password.
+Verify subscriptions and watch history rather than assuming they work.
+
+Commands (replace SERIAL with the current connected device identifier):
+adb -s SERIAL install -r FreeTube-TV-prototype-armv7.apk
+adb -s SERIAL shell am start -n app.freetube.tv.prototype/com.liskovsoft.smartyoutubetv2.tv.ui.main.SplashActivity
+
+This is a development APK. It has not been run on the physical projector.
+It is independent of the existing FreeTube desktop project.
+Official YouTube and SmartTube retain their own data; this app starts with separate data.
+Future APK updates must use the same signing key. A local rebuild uses a different
+development key unless you deliberately configure the same key; do not uninstall
+an existing build with user data simply to bypass a signature mismatch.

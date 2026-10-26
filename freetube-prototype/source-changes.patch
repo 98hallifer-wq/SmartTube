@@ -1,0 +1,624 @@
+diff --git a/common/build.gradle b/common/build.gradle
+index 35466e8..9c9592a 100644
+--- a/common/build.gradle
++++ b/common/build.gradle
+@@ -45,6 +45,7 @@ android {
+     flavorDimensions "default"
+ 
+     productFlavors {
++        stfreetube { matchingFallbacks = ['stfdroid'] }
+         stbeta {}
+         ststable {}
+         stfdroid {}
+@@ -56,7 +57,7 @@ dependencies {
+ 
+     implementation 'androidx.appcompat:appcompat:' + appCompatXVersion
+     testImplementation 'junit:junit:' + junitVersion
+-    testImplementation 'org.robolectric:robolectric:' + robolectricVersion
++    testImplementation 'org.robolectric:robolectric:4.11.1'
+ 
+     implementation project(':sharedutils')
+     implementation project(':fragment-1.1.0')
+diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/dialogs/AppUpdatePresenter.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/dialogs/AppUpdatePresenter.java
+index 7cf23d1..a8f0804 100644
+--- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/dialogs/AppUpdatePresenter.java
++++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/dialogs/AppUpdatePresenter.java
+@@ -49,6 +49,15 @@ public class AppUpdatePresenter extends BasePresenter<Void> implements AppUpdate
+     }
+ 
+     public void start(boolean forceCheck) {
++        // Source-built variants may intentionally have no binary update channel.
++        // Do not start a spinner or issue an empty request in that case.
++        if (mUpdateManifestUrls.length == 0) {
++            if (forceCheck) {
++                MessageHelpers.showMessage(getContext(), R.string.manual_build_updates);
++            }
++            return;
++        }
++
+         mIsForceCheck = forceCheck;
+ 
+         if (forceCheck) {
+diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/MainUIData.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/MainUIData.java
+index 8ad0b52..8ec8fac 100644
+--- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/MainUIData.java
++++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/MainUIData.java
+@@ -373,6 +373,7 @@ public class MainUIData extends DataChangeBase implements ProfileChangeListener
+     }
+ 
+     private void initColorSchemes() {
++        boolean freeTube = mContext.getPackageName().contains("freetube");
+         mColorSchemes.add(new ColorScheme(
+                 R.string.color_scheme_teal,
+                 null,
+@@ -381,9 +382,9 @@ public class MainUIData extends DataChangeBase implements ProfileChangeListener
+                 mContext));
+         mColorSchemes.add(new ColorScheme(
+                 R.string.color_scheme_dark_grey,
+-                "App.Theme.DarkGrey.Player",
+-                "App.Theme.DarkGrey.Browse",
+-                "App.Theme.DarkGrey.Preferences",
++                freeTube ? "App.Theme.FreeTube.Player" : "App.Theme.DarkGrey.Player",
++                freeTube ? "App.Theme.FreeTube.Browse" : "App.Theme.DarkGrey.Browse",
++                freeTube ? "App.Theme.FreeTube.Preferences" : "App.Theme.DarkGrey.Preferences",
+                 mContext));
+         mColorSchemes.add(new ColorScheme(
+                 R.string.color_scheme_red,
+diff --git a/leanbackassistant/build.gradle b/leanbackassistant/build.gradle
+index dcd39bf..6f59062 100644
+--- a/leanbackassistant/build.gradle
++++ b/leanbackassistant/build.gradle
+@@ -35,6 +35,7 @@ android {
+     flavorDimensions "default"
+ 
+     productFlavors {
++        stfreetube { matchingFallbacks = ['stfdroid'] }
+         stbeta {}
+         ststable {}
+         stfdroid {}
+diff --git a/smarttubetv/build.gradle b/smarttubetv/build.gradle
+index 3664bfd..78ecf9b 100644
+--- a/smarttubetv/build.gradle
++++ b/smarttubetv/build.gradle
+@@ -123,7 +123,7 @@ android {
+     // https://stackoverflow.com/questions/18332474/how-to-set-versionname-in-apk-filename-using-gradle
+     applicationVariants.all { variant ->
+         variant.outputs.all { output ->
+-            def project = "SmartTube"
++            def project = variant.flavorName == "stfreetube" ? "FreeTube" : "SmartTube"
+             def flavor = variant.productFlavors[-1].name.substring(2) // remove st prefix
+             def buildType = variant.buildType.name.take(1)
+             def version = variant.versionName
+@@ -159,6 +159,13 @@ android {
+ 
+     // NOTE: The main goal of prefixing a flavor is to group flavors' folders together
+     productFlavors {
++        stfreetube {
++            applicationId "app.freetube.tv.prototype"
++            minSdkVersion 26
++            targetSdkVersion 34
++            versionNameSuffix "-freetube.1"
++            matchingFallbacks = ['stfdroid']
++        }
+         stbeta {
+             applicationId "org.smarttube.beta"
+             targetSdkVersion project.properties.compileSdkVersion
+@@ -218,11 +225,11 @@ dependencies {
+ 
+     testImplementation 'junit:junit:' + junitVersion
+     testImplementation 'org.robolectric:robolectric:' + robolectricVersion
+-    androidTestImplementation 'androidx.test.ext:junit:' + testXSupportVersion
+-    androidTestImplementation 'androidx.test.ext:truth:' + testXSupportVersion
+-    androidTestImplementation 'androidx.test:runner:' + testXSupportVersion
+-    androidTestImplementation 'androidx.test:rules:' + testXSupportVersion
+-    androidTestImplementation 'androidx.test.espresso:espresso-core:' + espressoVersion
++    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
++    androidTestImplementation 'androidx.test.ext:truth:1.5.0'
++    androidTestImplementation 'androidx.test:runner:1.5.2'
++    androidTestImplementation 'androidx.test:rules:1.5.0'
++    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+ 
+     implementation project(':fragment-1.1.0')
+     implementation project(':leanback-1.0.0')
+diff --git a/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/presenter/IconHeaderItemPresenter.java b/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/presenter/IconHeaderItemPresenter.java
+index 4de27ee..b33c2e3 100644
+--- a/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/presenter/IconHeaderItemPresenter.java
++++ b/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/presenter/IconHeaderItemPresenter.java
+@@ -44,7 +44,11 @@ public class IconHeaderItemPresenter extends RowHeaderPresenter {
+                 .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+         mDefaultIcon = new ColorDrawable(ContextCompat.getColor(viewGroup.getContext(), R.color.lb_grey));
+ 
+-        View view = inflater.inflate(R.layout.icon_header_item, null);
++        boolean freeTube = FreeTubeAppearance.isEnabled(viewGroup.getContext());
++        View view = inflater.inflate(freeTube ? R.layout.freetube_header_item : R.layout.icon_header_item, null);
++        if (freeTube) {
++            mUnselectedAlpha = 1.0f;
++        }
+         view.setAlpha(mUnselectedAlpha); // Initialize icons to be at half-opacity.
+ 
+         return new ViewHolder(view);
+@@ -76,6 +80,9 @@ public class IconHeaderItemPresenter extends RowHeaderPresenter {
+             } else {
+                 Drawable icon = mResId > 0 ? ContextCompat.getDrawable(rootView.getContext(), mResId) : mDefaultIcon;
+                 iconView.setImageDrawable(icon);
++                if (FreeTubeAppearance.isEnabled(rootView.getContext()) && android.os.Build.VERSION.SDK_INT >= 21) {
++                    iconView.setImageTintList(ContextCompat.getColorStateList(rootView.getContext(), R.color.freetube_header_text));
++                }
+             }
+         }
+ 
+@@ -94,6 +101,9 @@ public class IconHeaderItemPresenter extends RowHeaderPresenter {
+     // mUnselectAlpha, and also assumes the xml inflation will return a RowHeaderView.
+     @Override
+     protected void onSelectLevelChanged(RowHeaderPresenter.ViewHolder holder) {
++        if (FreeTubeAppearance.isEnabled(holder.view.getContext())) {
++            holder.view.setActivated(holder.getSelectLevel() > 0.5f);
++        }
+         holder.view.setAlpha(mUnselectedAlpha + holder.getSelectLevel() *
+                 (1.0f - mUnselectedAlpha));
+     }
+diff --git a/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/presenter/VideoCardPresenter.java b/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/presenter/VideoCardPresenter.java
+index 686ad7b..44ac80b 100644
+--- a/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/presenter/VideoCardPresenter.java
++++ b/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/presenter/VideoCardPresenter.java
+@@ -43,10 +43,12 @@ public class VideoCardPresenter extends LongClickPresenter {
+     private int mThumbQuality;
+     private int mWidth;
+     private int mHeight;
++    private boolean mFreeTubeAppearance;
+ 
+     @Override
+     public ViewHolder onCreateViewHolder(ViewGroup parent) {
+         Context context = parent.getContext();
++        mFreeTubeAppearance = FreeTubeAppearance.isEnabled(context);
+ 
+         mDefaultBackgroundColor =
+             ContextCompat.getColor(context, Helpers.getThemeAttr(context, R.attr.cardDefaultBackground));
+@@ -55,7 +57,7 @@ public class VideoCardPresenter extends LongClickPresenter {
+         mSelectedBackgroundColor =
+                 ContextCompat.getColor(context, Helpers.getThemeAttr(context, R.attr.cardSelectedBackground));
+         mSelectedTextColor =
+-                ContextCompat.getColor(context, R.color.card_selected_text_grey);
++                ContextCompat.getColor(context, mFreeTubeAppearance ? R.color.freetube_primary : R.color.card_selected_text_grey);
+ 
+         mCardPreviewType = getCardPreviewType(context);
+         mThumbQuality = getThumbQuality(context);
+@@ -88,6 +90,26 @@ public class VideoCardPresenter extends LongClickPresenter {
+         //if (VERSION.SDK_INT >= 23 && MainUIData.instance(context).isUiTweakEnabled(MainUIData.UI_TWEAK_ROUNDED_CORNERS)) {
+         //    cardView.setForeground(ContextCompat.getDrawable(context, R.drawable.lb_card_outline));
+         //}
++        if (mFreeTubeAppearance) {
++            // Keep titles readable at TV distance and separate them from channel metadata.
++            TextView title = cardView.findViewById(R.id.title_text);
++            if (title != null) {
++                title.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
++                title.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16);
++            }
++            TextView subtitle = cardView.findViewById(R.id.content_text);
++            if (subtitle != null) {
++                subtitle.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13);
++            }
++            View info = cardView.findViewById(R.id.info_field);
++            if (info != null) {
++                int inset = FreeTubeAppearance.dp(context, 10);
++                info.setPadding(inset, inset, inset, FreeTubeAppearance.dp(context, 12));
++            }
++            if (VERSION.SDK_INT >= 23) {
++                cardView.setForeground(ContextCompat.getDrawable(context, R.drawable.freetube_card_focus));
++            }
++        }
+         updateCardBackgroundColor(cardView, false);
+         return new ViewHolder(cardView);
+     }
+@@ -112,7 +134,8 @@ public class VideoCardPresenter extends LongClickPresenter {
+         }
+         TextView contentText = view.findViewById(R.id.content_text);
+         if (contentText != null) {
+-            contentText.setTextColor(textColor);
++            contentText.setTextColor(mFreeTubeAppearance
++                    ? ContextCompat.getColor(view.getContext(), R.color.freetube_secondary) : textColor);
+         }
+     }
+ 
+diff --git a/FREETUBE.md b/FREETUBE.md
+new file mode 100644
+index 0000000..6cb7736
+--- /dev/null
++++ b/FREETUBE.md
+@@ -0,0 +1,100 @@
++# FreeTube TV prototype
++
++This is a personal Android TV interface prototype derived from
++[SmartTube](https://github.com/yuliskov/SmartTube). Its display name is **FreeTube**
++and its independent Android application ID is `app.freetube.tv.prototype`.
++It is not affiliated with YouTube, Google, or the existing FreeTube desktop project.
++
++## Scope
++
++The interface changes provide a dark TV browsing screen, a readable navigation
++rail, and remote-focus styling using SmartTube's native TV views. They do not copy
++the proprietary YouTube APK or its assets. SmartTube's playback, account selection,
++subscriptions, history browsing, and optional SponsorBlock paths remain the basis
++of the app. No ReVanced patches are embedded.
++
++The separate package installs alongside official YouTube and SmartTube. It has its
++own app data and requires its own sign-in. History and subscriptions depend on the
++upstream service implementation and your account; an interface change cannot
++promise parity with official YouTube. Playback and ad handling depend on upstream
++changes. SponsorBlock only skips segments available in its community database.
++
++The prototype has no upstream APK update feed. “Check for updates” explains that
++updates must come from the same builder. Retain the signing key to update the app
++without removing its data. SmartTube's external voice-search bridge may recognize
++only official package IDs; device integration is not claimed for this prototype.
++
++## Source and licenses
++
++The inspected SmartTube base commit is
++`380a2b79d3aa1af44a7b8ffbb406ae483a13fbd6`.
++The pinned top-level submodules are:
++
++- MediaServiceCore: `05feeb7e7889ab0243e9d44cb06bc8a7d3f066b6`
++- SharedModules: `799cfae8a2f5c609b99e87fc673fc62de1c0199a`
++
++SmartTube, MediaServiceCore and SharedModules carry MIT licenses. Keep their
++copyright/license notices. Included libraries retain their own notices, including
++Apache-licensed components and the EPL-1.0 notice for bundled j2v8. The repository's
++LICENSE files are authoritative; do not describe every dependency as MIT.
++
++## Build
++
++Initialize the pinned dependencies after obtaining this prototype's source:
++
++```sh
++git submodule update --init --recursive
++```
++
++Use JDK 17, Android SDK platform 34, and the SDK build tools/NDK versions specified
++by the Gradle files. Set `JAVA_HOME` and `ANDROID_HOME` for your machine. Use the
++checked-in Gradle wrapper. The new flavor is `stfreetube`.
++
++```sh
++bash gradlew :smarttubetv:assembleStfreetubeDebug --no-daemon --max-workers=2
++```
++
++On Windows, use `gradlew.bat` instead of `bash gradlew`. Debug is suitable for a
++private prototype and is signed with the machine's development key. Select the
++`armeabi-v7a` APK for the projector whose Android userspace reports 32-bit ARM,
++even if the underlying CPU supports 64-bit operation. APK outputs are under
++`smarttubetv/build/outputs/apk/stfreetube/debug/`.
++
++Relevant checks, whose actual outcome must be reported by the builder:
++
++```sh
++bash gradlew :smarttubetv:lintStfreetubeDebug :common:testStfreetubeDebugUnitTest --no-daemon --max-workers=2
++```
++
++Do not treat a successful compilation, syntax check, or a zero-test run as evidence
++that sign-in, streaming, ad handling, or remote navigation works on a TV.
++
++## Install and verify
++
++Use ADB on the laptop that can reach the projector. Determine its current debugging
++connection IP and port; pairing and connection ports differ. Then, substituting the
++actual serial and APK path:
++
++```sh
++adb -s DEVICE_SERIAL install -r PATH_TO_ARMV7_APK
++adb -s DEVICE_SERIAL shell monkey -p app.freetube.tv.prototype -c android.intent.category.LEANBACK_LAUNCHER 1
++```
++
++This is a media application. Do not set it as Android Home, replace system YouTube,
++change DNS, or modify the projector's remote mapping merely to test it.
++
++Validate on the real Android 14 projector:
++
++- App tile and name are distinct; official YouTube and SmartTube still launch.
++- D-pad can reach every navigation entry, video row, search control, and Settings;
++  Back returns predictably and focus stays visible.
++- Anonymous browsing and video/audio playback work on more than one video.
++- Account sign-in, subscriptions and watch history work if the user opts to sign in.
++- SponsorBlock settings are available; test a video with known submitted segments.
++- Player seek, pause, subtitles and quality controls work with the physical remote.
++- Home, Settings and held-volume behavior match the projector's existing setup.
++- Process restart and device reboot preserve the app's settings.
++- Check for updates reports manual updates instead of installing upstream SmartTube.
++
++Report unsupported or untested behavior explicitly. This document describes the
++procedure, not a claim that device tests have been performed.
+diff --git a/common/src/main/res/values/manual_build_updates.xml b/common/src/main/res/values/manual_build_updates.xml
+new file mode 100644
+index 0000000..8991607
+--- /dev/null
++++ b/common/src/main/res/values/manual_build_updates.xml
+@@ -0,0 +1,4 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="manual_build_updates">This build uses manual updates. Install a newer APK from the same builder.</string>
++</resources>
+diff --git a/leanbackassistant/src/stfreetube/AndroidManifest.xml b/leanbackassistant/src/stfreetube/AndroidManifest.xml
+new file mode 100644
+index 0000000..7680c92
+--- /dev/null
++++ b/leanbackassistant/src/stfreetube/AndroidManifest.xml
+@@ -0,0 +1,24 @@
++<manifest xmlns:android="http://schemas.android.com/apk/res/android"
++          xmlns:tools="http://schemas.android.com/tools"
++          package="com.liskovsoft.leanbackassistant">
++
++    <application android:allowBackup="true"
++                 android:label="@string/app_name"
++                 android:supportsRtl="true"
++                 android:theme="@style/AppTheme">
++
++        <!--    SEARCH    -->
++
++        <!-- NOTE: Don't change authorities to allow further updates of the apk -->
++        <provider android:name=".search.VideoContentProvider"
++                  android:authorities="${applicationId}.search_provider"
++                  android:exported="true"
++                  android:initOrder="1999999999"
++                  tools:ignore="ExportedContentProvider"
++                  tools:node="replace" />
++
++        <!--  END  SEARCH    -->
++
++    </application>
++
++</manifest>
+diff --git a/leanbackassistant/src/stfreetube/res/values/strings.xml b/leanbackassistant/src/stfreetube/res/values/strings.xml
+new file mode 100644
+index 0000000..1418b5b
+--- /dev/null
++++ b/leanbackassistant/src/stfreetube/res/values/strings.xml
+@@ -0,0 +1,5 @@
++<resources translatable="false">
++    <string name="search_label">FreeTube</string>
++    <string name="settings_description">FreeTube Videos</string>
++    <string name="search_authority">app.freetube.tv.prototype.search_provider</string>
++</resources>
+diff --git a/leanbackassistant/src/stfreetube/res/xml/searchable.xml b/leanbackassistant/src/stfreetube/res/xml/searchable.xml
+new file mode 100644
+index 0000000..801da92
+--- /dev/null
++++ b/leanbackassistant/src/stfreetube/res/xml/searchable.xml
+@@ -0,0 +1,26 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- The attributes below configure the Android search box appearance
++     and the search suggestions settings.
++     See the Developer Guide for more information
++     http://developer.android.com/guide/topics/search/
++
++     The Assistant's priority order for intent actions are as follows:
++         1) Intent specified in cursor(SUGGEST_COLUMN_INTENT_ACTION)
++         2) Intent specific in this file (searchSuggestIntentAction)
++         3) ACTION_SEARCH(default)
++
++    It is recommended to set it to ACTION_VIEW in searchable.xml and only override in code if you
++    want to handle certain pieces of content differently.
++ -->
++<searchable xmlns:android="http://schemas.android.com/apk/res/android"
++    android:hint="@string/search_hint"
++    android:includeInGlobalSearch="true"
++    android:label="@string/search_label"
++    android:icon="@drawable/lb_ic_in_app_search"
++    android:searchSettingsDescription="@string/settings_description"
++    android:searchSuggestAuthority="app.freetube.tv.prototype.search_provider"
++    android:searchSuggestIntentAction="android.intent.action.VIEW"
++    android:searchSuggestIntentData="content://app.freetube.tv.prototype.search_provider/video"
++    android:queryAfterZeroResults="true"
++    android:searchSuggestPath="search"
++    android:searchSuggestThreshold="0" />
+\ No newline at end of file
+diff --git a/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/presenter/FreeTubeAppearance.java b/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/presenter/FreeTubeAppearance.java
+new file mode 100644
+index 0000000..3b0e6a8
+--- /dev/null
++++ b/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/presenter/FreeTubeAppearance.java
+@@ -0,0 +1,19 @@
++package com.liskovsoft.smartyoutubetv2.tv.presenter;
++
++import android.content.Context;
++import android.util.TypedValue;
++import com.liskovsoft.smartyoutubetv2.tv.R;
++
++/** Styling only: navigation and video actions remain in the upstream presenters. */
++final class FreeTubeAppearance {
++    private FreeTubeAppearance() { }
++
++    static boolean isEnabled(Context context) {
++        TypedValue value = new TypedValue();
++        return context.getTheme().resolveAttribute(R.attr.freeTubeAppearance, value, true) && value.data != 0;
++    }
++
++    static int dp(Context context, int value) {
++        return Math.round(value * context.getResources().getDisplayMetrics().density);
++    }
++}
+diff --git a/smarttubetv/src/main/res/color/freetube_header_text.xml b/smarttubetv/src/main/res/color/freetube_header_text.xml
+new file mode 100644
+index 0000000..0ac55d4
+--- /dev/null
++++ b/smarttubetv/src/main/res/color/freetube_header_text.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<selector xmlns:android="http://schemas.android.com/apk/res/android">
++    <item android:state_focused="true" android:color="@color/freetube_background" />
++    <item android:color="@color/freetube_primary" />
++</selector>
+diff --git a/smarttubetv/src/main/res/drawable/freetube_card_focus.xml b/smarttubetv/src/main/res/drawable/freetube_card_focus.xml
+new file mode 100644
+index 0000000..cf92ba3
+--- /dev/null
++++ b/smarttubetv/src/main/res/drawable/freetube_card_focus.xml
+@@ -0,0 +1,4 @@
++<selector xmlns:android="http://schemas.android.com/apk/res/android">
++    <item android:state_selected="true"><shape><solid android:color="@android:color/transparent" /><corners android:radius="12dp" /><stroke android:width="2dp" android:color="@color/freetube_primary" /></shape></item>
++    <item><shape><solid android:color="@android:color/transparent" /></shape></item>
++</selector>
+diff --git a/smarttubetv/src/main/res/drawable/freetube_header_background.xml b/smarttubetv/src/main/res/drawable/freetube_header_background.xml
+new file mode 100644
+index 0000000..64f1103
+--- /dev/null
++++ b/smarttubetv/src/main/res/drawable/freetube_header_background.xml
+@@ -0,0 +1,5 @@
++<selector xmlns:android="http://schemas.android.com/apk/res/android">
++    <item android:state_focused="true"><shape><solid android:color="@color/freetube_primary" /><corners android:radius="24dp" /></shape></item>
++    <item android:state_activated="true"><shape><solid android:color="@color/freetube_selected" /><corners android:radius="24dp" /></shape></item>
++    <item><shape><solid android:color="@android:color/transparent" /><corners android:radius="24dp" /></shape></item>
++</selector>
+diff --git a/smarttubetv/src/main/res/layout/freetube_header_item.xml b/smarttubetv/src/main/res/layout/freetube_header_item.xml
+new file mode 100644
+index 0000000..ec2f1b2
+--- /dev/null
++++ b/smarttubetv/src/main/res/layout/freetube_header_item.xml
+@@ -0,0 +1,13 @@
++<androidx.leanback.widget.NonOverlappingLinearLayout
++    xmlns:android="http://schemas.android.com/apk/res/android"
++    android:layout_width="216dp" android:layout_height="48dp"
++    android:gravity="center_vertical" android:paddingStart="14dp" android:paddingEnd="14dp"
++    android:background="@drawable/freetube_header_background" android:orientation="horizontal">
++    <ImageView android:id="@+id/header_icon" android:layout_width="24dp" android:layout_height="24dp"
++        android:duplicateParentState="true" android:importantForAccessibility="no" />
++    <com.liskovsoft.smartyoutubetv2.tv.ui.widgets.marqueetextviewcompat.HeaderMarqueeTextViewCompat
++        android:id="@+id/header_label" android:layout_width="0dp" android:layout_height="wrap_content"
++        android:layout_weight="1" android:layout_marginStart="16dp" android:duplicateParentState="true"
++        android:fontFamily="sans-serif-medium" android:textSize="17sp" android:textColor="@color/freetube_header_text"
++        android:singleLine="true" android:ellipsize="end" />
++</androidx.leanback.widget.NonOverlappingLinearLayout>
+diff --git a/smarttubetv/src/main/res/values/freetube_theme.xml b/smarttubetv/src/main/res/values/freetube_theme.xml
+new file mode 100644
+index 0000000..a96a2f8
+--- /dev/null
++++ b/smarttubetv/src/main/res/values/freetube_theme.xml
+@@ -0,0 +1,48 @@
++<resources>
++    <attr name="freeTubeAppearance" format="boolean" />
++    <color name="freetube_background">#0F0F0F</color>
++    <color name="freetube_rail">#151515</color>
++    <color name="freetube_selected">#303030</color>
++    <color name="freetube_primary">#F1F1F1</color>
++    <color name="freetube_secondary">#AAAAAA</color>
++    <color name="freetube_accent">#FF5252</color>
++    <style name="App.Theme.FreeTube.Browse" parent="App.Theme.DarkGrey.Browse">
++        <item name="freeTubeAppearance">true</item>
++        <item name="android:windowBackground">@color/freetube_background</item>
++        <item name="android:colorAccent">@color/freetube_accent</item>
++        <item name="shelfBackground">@color/freetube_background</item>
++        <item name="cardDefaultBackground">@color/freetube_background</item>
++        <item name="cardSelectedBackground">@color/freetube_selected</item>
++        <item name="brandColor">@color/freetube_rail</item>
++        <item name="brandAccentColor">@color/freetube_accent</item>
++        <item name="itemsVerticalGridStyle">@style/FreeTube.Grid</item>
++        <item name="rowHorizontalGridStyle">@style/FreeTube.Row</item>
++        <item name="headersVerticalGridStyle">@style/FreeTube.Headers</item>
++    </style>
++    <style name="App.Theme.FreeTube.Player" parent="App.Theme.DarkGrey.Player">
++        <item name="freeTubeAppearance">true</item>
++        <item name="android:windowBackground">@color/freetube_background</item>
++        <item name="android:colorAccent">@color/freetube_accent</item>
++        <item name="shelfBackground">@color/freetube_background</item>
++        <item name="cardDefaultBackground">@color/freetube_background</item>
++        <item name="cardSelectedBackground">@color/freetube_selected</item>
++        <item name="playbackProgressPrimaryColor">@color/freetube_accent</item>
++        <item name="playbackControlsIconHighlightColor">@color/freetube_accent</item>
++    </style>
++    <style name="App.Theme.FreeTube.Preferences" parent="App.Theme.DarkGrey.Preferences">
++        <item name="freeTubeAppearance">true</item>
++        <item name="android:windowBackground">@color/freetube_background</item>
++        <item name="android:colorAccent">@color/freetube_accent</item>
++        <item name="android:colorPrimary">@color/freetube_rail</item>
++    </style>
++    <style name="FreeTube.Grid" parent="GridViewStyle">
++        <item name="android:horizontalSpacing">20dp</item>
++        <item name="android:verticalSpacing">24dp</item>
++    </style>
++    <style name="FreeTube.Row" parent="RowViewStyle">
++        <item name="android:horizontalSpacing">20dp</item>
++    </style>
++    <style name="FreeTube.Headers" parent="BrowseHeaderStyle">
++        <item name="android:verticalSpacing">6dp</item>
++    </style>
++</resources>
+diff --git a/smarttubetv/src/stfreetube/res/mipmap-anydpi/app_banner.xml b/smarttubetv/src/stfreetube/res/mipmap-anydpi/app_banner.xml
+new file mode 100644
+index 0000000..f937f40
+--- /dev/null
++++ b/smarttubetv/src/stfreetube/res/mipmap-anydpi/app_banner.xml
+@@ -0,0 +1,5 @@
++<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="320dp" android:height="180dp" android:viewportWidth="320" android:viewportHeight="180">
++<path android:fillColor="#111318" android:pathData="M0,0h320v180h-320z"/>
++<path android:fillColor="#6FE6CB" android:pathData="M118,48h84v17h-64v19h48v17h-48v32h-20z"/>
++<path android:fillColor="#FFFFFF" android:pathData="M180,108l25,14l-25,14z"/>
++</vector>
+\ No newline at end of file
+diff --git a/smarttubetv/src/stfreetube/res/mipmap-anydpi/app_icon.xml b/smarttubetv/src/stfreetube/res/mipmap-anydpi/app_icon.xml
+new file mode 100644
+index 0000000..ea278f2
+--- /dev/null
++++ b/smarttubetv/src/stfreetube/res/mipmap-anydpi/app_icon.xml
+@@ -0,0 +1,5 @@
++<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
++<path android:fillColor="#111318" android:pathData="M0,0h108v108h-108z"/>
++<path android:fillColor="#6FE6CB" android:pathData="M28,26h52v12h-38v12h29v12h-29v22h-14z"/>
++<path android:fillColor="#FFFFFF" android:pathData="M66,65l18,10l-18,10z"/>
++</vector>
+\ No newline at end of file
+diff --git a/smarttubetv/src/stfreetube/res/mipmap-anydpi/app_icon_alt.xml b/smarttubetv/src/stfreetube/res/mipmap-anydpi/app_icon_alt.xml
+new file mode 100644
+index 0000000..ea278f2
+--- /dev/null
++++ b/smarttubetv/src/stfreetube/res/mipmap-anydpi/app_icon_alt.xml
+@@ -0,0 +1,5 @@
++<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
++<path android:fillColor="#111318" android:pathData="M0,0h108v108h-108z"/>
++<path android:fillColor="#6FE6CB" android:pathData="M28,26h52v12h-38v12h29v12h-29v22h-14z"/>
++<path android:fillColor="#FFFFFF" android:pathData="M66,65l18,10l-18,10z"/>
++</vector>
+\ No newline at end of file
+diff --git a/smarttubetv/src/stfreetube/res/mipmap-anydpi/app_logo.xml b/smarttubetv/src/stfreetube/res/mipmap-anydpi/app_logo.xml
+new file mode 100644
+index 0000000..ea278f2
+--- /dev/null
++++ b/smarttubetv/src/stfreetube/res/mipmap-anydpi/app_logo.xml
+@@ -0,0 +1,5 @@
++<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
++<path android:fillColor="#111318" android:pathData="M0,0h108v108h-108z"/>
++<path android:fillColor="#6FE6CB" android:pathData="M28,26h52v12h-38v12h29v12h-29v22h-14z"/>
++<path android:fillColor="#FFFFFF" android:pathData="M66,65l18,10l-18,10z"/>
++</vector>
+\ No newline at end of file
+diff --git a/smarttubetv/src/stfreetube/res/mipmap-anydpi/app_logo_semi_grey.xml b/smarttubetv/src/stfreetube/res/mipmap-anydpi/app_logo_semi_grey.xml
+new file mode 100644
+index 0000000..ea278f2
+--- /dev/null
++++ b/smarttubetv/src/stfreetube/res/mipmap-anydpi/app_logo_semi_grey.xml
+@@ -0,0 +1,5 @@
++<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
++<path android:fillColor="#111318" android:pathData="M0,0h108v108h-108z"/>
++<path android:fillColor="#6FE6CB" android:pathData="M28,26h52v12h-38v12h29v12h-29v22h-14z"/>
++<path android:fillColor="#FFFFFF" android:pathData="M66,65l18,10l-18,10z"/>
++</vector>
+\ No newline at end of file
+diff --git a/smarttubetv/src/stfreetube/res/mipmap-anydpi/app_logo_semi_red.xml b/smarttubetv/src/stfreetube/res/mipmap-anydpi/app_logo_semi_red.xml
+new file mode 100644
+index 0000000..ea278f2
+--- /dev/null
++++ b/smarttubetv/src/stfreetube/res/mipmap-anydpi/app_logo_semi_red.xml
+@@ -0,0 +1,5 @@
++<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
++<path android:fillColor="#111318" android:pathData="M0,0h108v108h-108z"/>
++<path android:fillColor="#6FE6CB" android:pathData="M28,26h52v12h-38v12h29v12h-29v22h-14z"/>
++<path android:fillColor="#FFFFFF" android:pathData="M66,65l18,10l-18,10z"/>
++</vector>
+\ No newline at end of file
+diff --git a/smarttubetv/src/stfreetube/res/values/strings.xml b/smarttubetv/src/stfreetube/res/values/strings.xml
+new file mode 100644
+index 0000000..d304a3a
+--- /dev/null
++++ b/smarttubetv/src/stfreetube/res/values/strings.xml
+@@ -0,0 +1,4 @@
++<resources>
++    <string name="app_name" translatable="false">FreeTube</string>
++    <string name="browse_title" translatable="false">FreeTube</string>
++</resources>
